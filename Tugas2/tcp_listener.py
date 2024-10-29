@@ -31,7 +31,6 @@ def start_tcp_listener(host=HOST, port=PORT):
       print("Exiting...")
     finally:
       s.close()
-    conn, addr = s.accept()
 
 if __name__ == "__main__":
   start_tcp_listener()
