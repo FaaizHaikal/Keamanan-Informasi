@@ -11,21 +11,27 @@ def start_tcp_listener(host=HOST, port=PORT):
     s.bind((host, port))
     s.listen()
     print(f"Listening on {host}:{port}")
+    
+    try:
+      conn, addr = s.accept()
+      with conn:
+        print(f"Connected by {addr}")
+
+        while True:
+          print("Waiting for message...")
+          data = conn.recv(1024)
+          if not data:
+            break
+          ciphertext = data.decode()
+          plaintext = des.decrypt(ciphertext)
+
+          print(f"Cipher Text: {ciphertext}")
+          print(f"Plain Text: {plaintext}")
+    except KeyboardInterrupt:
+      print("Exiting...")
+    finally:
+      s.close()
     conn, addr = s.accept()
-    with conn:
-      print(f"Connected by {addr}")
-      while True:
-        data = conn.recv(1024)
-        if not data:
-          break
-        ciphertext = data.decode()
-        plaintext = des.decrypt(ciphertext)
-
-        print(f"Cipher Text: {ciphertext}")
-        print(f"Plain Text: {plaintext}")
-
-        data = des.encrypt(data)
-        conn.sendall(data)
 
 if __name__ == "__main__":
   start_tcp_listener()
