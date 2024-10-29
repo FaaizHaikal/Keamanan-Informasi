@@ -24,6 +24,7 @@ def start_tcp_listener(host=HOST, port=PORT):
         print(f"Cipher Text: {ciphertext}")
         print(f"Plain Text: {plaintext}")
 
+        data = des.encrypt(data)
         conn.sendall(data)
 
 if __name__ == "__main__":
