@@ -29,6 +29,8 @@ def start_tcp_listener(host=HOST, port=PORT):
           print(f"Plain Text: {plaintext}")
     except KeyboardInterrupt:
       print("Exiting...")
+    except Exception as e:
+      print(f"An error occurred: {e}")
     finally:
       s.close()
 
