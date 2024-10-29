@@ -109,7 +109,7 @@ SHIFT = [1, 1, 2, 2, 2, 2, 2, 2,
          1, 2, 2, 2, 2, 2, 2, 1]
 
 class DES:
-  def __init__(self, key):
+  def __init__(self, key="APALAHKEY"):
     self.rounds = 16
     self.key = self.str_to_bitarray(key)
     self.subkeys = self.generate_subkeys()
@@ -160,11 +160,10 @@ class DES:
     return bits[n:] + bits[:n]
   
   def xor(self, a, b):
-    return bitarray([i ^ j for i, j in zip(a, b)])
+    return a ^ b
   
   def s_box(self, bits):
     output = bitarray()
-
     for i in range(8):
       block = bits[i * 6:(i + 1) * 6]
       row = ba2int(block[:1] + block[5:])
@@ -228,7 +227,7 @@ class DES:
 if __name__ == "__main__":
   KEY = "APALAHKEY"
   des = DES(KEY)
-  plaintext = "AHAHAHAHAHHA"
+  plaintext = "CHAHAHAHAHB"
   ciphertext = des.encrypt(plaintext)
   decrypted = des.decrypt(ciphertext)
   print(f"Plaintext: {plaintext}")
