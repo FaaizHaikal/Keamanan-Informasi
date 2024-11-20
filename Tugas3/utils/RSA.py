@@ -17,13 +17,19 @@ class RSA:
     with open(private_key_path, "r") as f:
       self.private_key = tuple(map(int, f.read().split(",")))
     
-  def encrypt(self, plaintext):
-    e, n = self.public_key
+  def encrypt(self, plaintext, key=None):
+    if key is None:
+      e, n = self.public_key
+    else:
+      e, n = key
     cipher = [pow(ord(char), e, n) for char in plaintext]
     return cipher
 
-  def decrypt(self, ciphertext):
-    d, n = self.private_key
+  def decrypt(self, ciphertext, key=None):
+    if key is None:
+      d, n = self.private_key
+    else:
+      d, n = key
     plain = [chr(pow(char, d, n)) for char in ciphertext]
     return ''.join(plain)
 

@@ -2,6 +2,7 @@ import socket
 import json
 import os
 
+from utils.mitecom import PublicKeyResponse, read_all
 from utils.RSA import RSA
 
 HOST='127.0.0.1'
@@ -11,50 +12,39 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
 server.listen(5)
 
-NODES = ["initiator", "responder"]
 PUBLIC_KEYS = {}
-class Response:
-  def __init__(self, type, value=None, message=None):
-    self.type = type
-    self.value = value
-    self.message = message
-    
-  def to_json(self):
-    return json.dumps(self.__dict__)
-  
-# This reads all public keys for each nodes
+
 def read_keys():
   start_dir = os.path.dirname(__file__)
-
-  for node in NODES:
-    dir = os.path.join(start_dir, f"utils/pub_keys/{node}.pem")
-    with open(dir) as f:
-      key = tuple(map(int, f.read().split(",")))
-      PUBLIC_KEYS[node] = key
+  keys_dir = os.path.join(start_dir, "utils/pub_keys")
+  for filename in os.listdir(keys_dir):
+    if filename.endswith(".pem"):
+      node = filename.split(".")[0]
+      if node != "pka": # PKA's key will instantly be read by the RSA class
+        with open(os.path.join(keys_dir, filename)) as f:
+          key = tuple(map(int, f.read().split(",")))
+          PUBLIC_KEYS[node] = key
 
 def handle_request(client):
-  data = client.recv(1024).decode()
-  print(f"Received: {data}") 
-  response = Response("error")
+  data = read_all(client).decode()
+  response = PublicKeyResponse()
 
   try:
     request = json.loads(data)
-    if request['type'] == 'GET':
-      key = request['key']
-      if key in PUBLIC_KEYS:
-        response.type = "ok"
-        response.value = PUBLIC_KEYS[key]
-      else:
-        response.type = "error"
-        response.message = "Key not found"
-    else:
+    if request['request_for'] not in PUBLIC_KEYS:
       response.type = "error"
-      response.message = "Invalid request type"
+      response.message = "The requested public key not found"
+    elif request['requested_by'] not in PUBLIC_KEYS:
+      response.type = "error"
+      response.message = "Unaothorized requester!"
+    else:
+      response.type = "success"
+      response.value = PUBLIC_KEYS[request['request_for']]
   except json.JSONDecodeError:
     response.type = "error"
     response.message = "Invalid JSON"
-  
-  return response.to_json()
+
+  return json.dumps(response.to_msg())
 
 if __name__ == "__main__":
   read_keys()
@@ -63,10 +53,10 @@ if __name__ == "__main__":
   while True:
     try:
       client, addr = server.accept()
-      message = handle_request(client)
-      ciphertext = rsa.encrypt(message)
-      print(f"Sending: {ciphertext}")
-      client.sendall(ciphertext)
+      response = handle_request(client)
+      ciphertext = rsa.encrypt(response, rsa.private_key)
+      
+      client.sendall(json.dumps(ciphertext).encode())
 
       client.close()
     except KeyboardInterrupt:
