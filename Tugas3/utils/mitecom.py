@@ -1,3 +1,5 @@
+import os
+
 class PublicKeyRequest:
   def __init__(self, request_for, requested_by):
     self.request_for = request_for
@@ -20,6 +22,17 @@ class PublicKeyResponse:
       'type': self.type,
       'value': self.value,
       'message': self.message
+    }
+  
+class HandshakeMessage:
+  def __init__(self, id, nonce):
+    self.id = id
+    self.nonce = nonce
+
+  def to_msg(self):
+    return {
+      'id': self.id,
+      'nonce': self.nonce.hex()
     }
 
 def read_all(client, buf_size=1024):
