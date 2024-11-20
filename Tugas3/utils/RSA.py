@@ -23,15 +23,17 @@ class RSA:
     else:
       e, n = key
     cipher = [pow(ord(char), e, n) for char in plaintext]
-    return cipher
+    cipher_text = ' '.join(map(str, cipher))
+    return cipher_text
 
   def decrypt(self, ciphertext, key=None):
     if key is None:
       d, n = self.private_key
     else:
       d, n = key
-    plain = [chr(pow(char, d, n)) for char in ciphertext]
-    return ''.join(plain)
+    cipher = list(map(int, ciphertext.split()))
+    plaintext = ''.join([chr(pow(char, d, n)) for char in cipher])
+    return plaintext
 
 if __name__ == "__main__":
   rsa = RSA("initiator")
