@@ -1,56 +1,66 @@
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import padding
+import random
+from sympy import isprime, mod_inverse
+import os
 
-# Generate RSA key pair
-private_key = rsa.generate_private_key(
-    public_exponent=65537,
-    key_size=2048
-)
-public_key = private_key.public_key()
+NODES = ["initiator", "responder", "pka"]
 
-# Serialize and save the private key to a file
-pem = private_key.private_bytes(
-    encoding=serialization.Encoding.PEM,
-    format=serialization.PrivateFormat.PKCS8,
-    encryption_algorithm=serialization.NoEncryption()
-)
-with open('private_key.pem', 'wb') as f:
-    f.write(pem)
+def generate_prime_candidate(length):
+  p = 0
+  while not isprime(p):
+    p = random.getrandbits(length)
+  return p
 
-# Serialize and save the public key to a file
-pem = public_key.public_bytes(
-    encoding=serialization.Encoding.PEM,
-    format=serialization.PublicFormat.SubjectPublicKeyInfo
-)
-with open('public_key.pem', 'wb') as f:
-    f.write(pem)
+def generate_keypair(bits):
+  p = generate_prime_candidate(bits // 2)
+  q = generate_prime_candidate(bits // 2)
+  
+  n = p * q
+  phi = (p - 1) * (q - 1)
+  
+  e = random.randrange(1, phi)
+  g = gcd(e, phi)
+  while g != 1:
+    e = random.randrange(1, phi)
+    g = gcd(e, phi)
+  
+  d = mod_inverse(e, phi)
+  
+  return ((e, n), (d, n))
 
-# Load the public key from a file (obtained from Public Key Authority)
-with open('public_key.pem', 'rb') as f:
-    public_key_authority = serialization.load_pem_public_key(
-        f.read()
-    )
+def gcd(a, b):
+  while b != 0:
+    a, b = b, a % b
+  return a
 
-# Encrypt data using the public key from Public Key Authority
-message = b"Hello, World!"
-ciphertext = public_key_authority.encrypt(
-    message,
-    padding.OAEP(
-        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-        algorithm=hashes.SHA256(),
-        label=None
-    )
-)
+def save_keys(public_key, private_key, node):
+  script_dir = os.path.dirname(__file__)
+  public_key_path = os.path.join(script_dir, f"pub_keys/{node}.pem")
+  private_key_path = os.path.join(script_dir, f"priv_keys/{node}.pem")
+    
+  with open(public_key_path, "w") as f:
+    f.write(f"{public_key[0]},{public_key[1]}")
+    
+  with open(private_key_path, "w") as f:
+    f.write(f"{private_key[0]},{private_key[1]}")
 
-# Decrypt data using the private key
-plaintext = private_key.decrypt(
-    ciphertext,
-    padding.OAEP(
-        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-        algorithm=hashes.SHA256(),
-        label=None
-    )
-)
+# def send_encrypted_message(host, port, message):
+#     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+#         s.connect((host, port))
+#         s.sendall(pickle.dumps(message))
 
-print(plaintext.decode())
+# def receive_encrypted_message(host, port):
+#     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+#         s.bind((host, port))
+#         s.listen()
+#         conn, addr = s.accept()
+#         with conn:
+#             data = conn.recv(4096)
+#             return json.loads(data.decode('utf-8'))
+
+if __name__ == "__main__":
+  bits = 1024
+
+  for node in NODES:
+    public_key, private_key = generate_keypair(bits)
+    save_keys(public_key, private_key, node)
+    print(f"Generated keys for {node}")
